@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monkey Prime Hunt - เกมจำนวนเฉพาะสอดแทรกความสนุก</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Mali -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:ital,wght@0,400;0,600;0,700;1,500&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Mali', cursive, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Glassmorphism Styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-red {
+            background: rgba(220, 38, 38, 0.35);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(254, 202, 202, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(153, 27, 27, 0.4);
+        }
+
+        .glass-blue {
+            background: rgba(37, 99, 235, 0.35);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(191, 219, 254, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(30, 64, 175, 0.4);
+        }
+
+        /* 3D Interactive Buttons */
+        .btn-3d {
+            transition: all 0.15s ease-in-out;
+            filter: drop-shadow(0px 6px 0px rgba(0,0,0,0.4));
+        }
+
+        .btn-3d:hover {
+            transform: translateY(-3px) scale(1.03);
+            filter: drop-shadow(0px 9px 0px rgba(0,0,0,0.35)) brightness(1.08);
+        }
+
+        .btn-3d:active {
+            transform: translateY(4px) scale(0.97);
+            filter: drop-shadow(0px 2px 0px rgba(0,0,0,0.5));
+        }
+
+        /* Animations */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            15%, 45%, 75% { transform: translateX(-12px) rotate(-3deg); }
+            30%, 60%, 90% { transform: translateX(12px) rotate(3deg); }
+        }
+
+        .shake-anim {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2) rotate(4deg); }
+            100% { transform: scale(1); }
+        }
+
+        .pop-anim {
+            animation: pop 0.4s ease-out;
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .float-anim {
+            animation: floatSlow 3s ease-in-out infinite;
+        }
+
+        /* Smooth Monkey Climb Positioning */
+        .monkey-avatar {
+            transition: bottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-slate-900 text-white">
+
+    <!-- ==================== 1. START SCREEN ==================== -->
+    <div id="start-screen" class="relative w-full h-full flex flex-col items-center justify-center p-4 bg-cover bg-center" style="background-image: url('bghome.gif');">
+        <!-- Overlay for contrast -->
+        <div class="absolute inset-0 bg-black/20"></div>
+
+        <div class="relative z-10 flex flex-col items-center max-w-2xl w-full">
+            <!-- Game Title Logo -->
+            <img src="namegame.png" alt="Monkey Prime Hunt" class="w-150 md:w-full max-w-md float-anim drop-shadow-2xl mb-8">
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 sm:gap-8 items-center justify-center w-full">
+                <!-- Start Game Button -->
+                <button onclick="startGame()" class="btn-3d focus:outline-none">
+                    <img src="image2.png" alt="เริ่มเกม" class="h-28 md:h-32 object-contain">
+                </button>
+                <!-- Rules Button -->
+                <button onclick="toggleModal(true)" class="btn-3d focus:outline-none">
+                    <img src="image3.png" alt="กติกา" class="h-24 md:h-32 object-contain">
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== RULES MODAL ==================== -->
+    <div id="rules-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="glass-card rounded-3xl p-6 md:p-8 max-w-lg w-full text-slate-800 relative shadow-2xl border border-white/60">
+            <h2 class="text-3xl font-bold text-center text-amber-200 mb-4 drop-shadow">🌴 กติกาการเล่น 🌴</h2>
+            <div class="space-y-3 text-base md:text-lg text-amber-200 font-semibold leading-relaxed">
+                <p>1. 🎮 ผู้เล่นแบ่งออกเป็น 2 ทีม </p>
+                <p>2. 🔢 ทั้งสองทีมจะได้รับตัวเลขสุ่มตั้งแต่ 1 ถึง 100</p>
+                <p>3. 💡 ตอบให้ถูกต้องว่าตัวเลขนั้น <span class="text-green-700 font-bold">"เป็น"</span> หรือ <span class="text-red-700 font-bold">"ไม่เป็น"</span> จำนวนเฉพาะ</p>
+                <p>4. ✅ ตอบถูก: ลิงจะปีนต้นกล้วยขึ้นไป 1 ระดับ</p>
+                <p>5. ❌ ตอบผิด: ลิงจะไถลตกลงมา 1 ระดับ</p>
+                <p>6. 🏆 ใครปีนถึงยอดต้นกล้วย (ระดับ 5) ได้ก่อน จะเป็นผู้ชนะทันที!</p>
+            </div>
+            <button onclick="toggleModal(false)" class="mt-6 w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xl rounded-2xl shadow-lg btn-3d">
+                เข้าใจแล้ว!
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== 2. GAME SCREEN ==================== -->
+    <div id="game-screen" class="relative w-full h-full hidden bg-cover bg-center overflow-hidden" style="background-image: url('bggame.png');">
+        
+        <!-- Center Divider Line -->
+        <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1.5 border-r-4 border-dashed border-white/80 z-20 pointer-events-none"></div>
+
+        <!-- Main Game Layout Split in 2 Sides -->
+        <div class="w-full h-full flex flex-row">
+            
+            <!-- ---------------- PLAYER 1 (LEFT) ---------------- -->
+            <div id="p1-container" class="w-1/2 h-full flex flex-col justify-between p-2 sm:p-4 relative z-10 border-r border-white/20">
+                <!-- Top Header Card -->
+                <div class="glass-red rounded-2xl p-2 sm:p-4 text-center text-white">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl font-bold drop-shadow">Player 1 :จ๋อแดง แซงมิด</span>
+                        <span id="p1-level-badge" class="bg-red-600/80 text-yellow-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-full border border-red-300">
+                            ระดับ 0 / 5 🍌
+                        </span>
+                    </div>
+                    <!-- Number Display -->
+                    <div class="bg-black/30 rounded-xl py-2 my-1 border border-white/20">
+                        <span class="text-xs sm:text-sm text-red-200 block">ตัวเลขนี้เป็นจำนวนเฉพาะหรือไม่?</span>
+                        <span id="p1-number" class="text-4xl sm:text-6xl font-extrabold text-amber-300 tracking-wider">--</span>
+                    </div>
+                </div>
+
+                <!-- Climbing Area (Tree & Monkey) -->
+                <div class="relative flex-1 my-2 flex items-center justify-center overflow-hidden">
+                    <div class="relative h-full w-42 sm:w-70 flex justify-center">
+                        <!-- Banana Tree Image -->
+                        <img src="image6.png" alt="Banana Tree" class="h-full object-contain">
+                        <!-- Monkey Player 1 -->
+                        <img id="p1-monkey" src="image7.png" alt="P1 Monkey" 
+                             class="monkey-avatar absolute w-16 sm:w-28 object-contain drop-shadow-xl"
+                             style="bottom: 5%;">
+                    </div>
+                </div>
+
+                <!-- Answer Buttons -->
+                <div class="grid grid-cols-2 gap-2 sm:gap-4 max-w-md mx-auto w-full">
+                    <button onclick="checkAnswer(1, true)" id="p1-btn-yes" class="btn-3d focus:outline-none">
+                        <img src="image4.png" alt="เป็น" class="w-40 h-25 sm:h-15 object-contain">
+                    </button>
+                    <button onclick="checkAnswer(1, false)" id="p1-btn-no" class="btn-3d focus:outline-none">
+                        <img src="image5.png" alt="ไม่เป็น" class="w-40 h-25 sm:h-15 object-contain">
+                    </button>
+                </div>
+            </div>
+
+            <!-- ---------------- PLAYER 2 (RIGHT) ---------------- -->
+            <div id="p2-container" class="w-1/2 h-full flex flex-col justify-between p-2 sm:p-4 relative z-10 border-l border-white/20">
+                <!-- Top Header Card -->
+                <div class="glass-blue rounded-2xl p-2 sm:p-4 text-center text-white">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-lg sm:text-2xl font-bold drop-shadow">Player 2 :จ๋อน้ำเงิน ชนยับ ดับซ่า</span>
+                        <span id="p2-level-badge" class="bg-blue-600/80 text-yellow-300 text-xs sm:text-sm font-bold px-3 py-1 rounded-full border border-blue-300">
+                            ระดับ 0 / 5 🍌
+                        </span>
+                    </div>
+                    <!-- Number Display -->
+                    <div class="bg-black/30 rounded-xl py-2 my-1 border border-white/20">
+                        <span class="text-xs sm:text-sm text-blue-200 block">ตัวเลขนี้เป็นจำนวนเฉพาะหรือไม่?</span>
+                        <span id="p2-number" class="text-4xl sm:text-6xl font-extrabold text-amber-300 tracking-wider">--</span>
+                    </div>
+                </div>
+
+                <!-- Climbing Area (Tree & Monkey) -->
+                <div class="relative flex-1 my-2 flex items-center justify-center overflow-hidden">
+                    <div class="relative h-full w-34 sm:w-49 flex justify-center">
+                        <!-- Banana Tree Image -->
+                        <img src="image6.png" alt="Banana Tree" class="h-160  w-110 object-contain">
+                        <!-- Monkey Player 2 -->
+                        <img id="p2-monkey" src="image8.png" alt="P2 Monkey" 
+                             class="monkey-avatar absolute w-16 sm:w-28 object-contain drop-shadow-xl"
+                             style="bottom: 5%;">
+                    </div>
+                </div>
+
+                <!-- Answer Buttons -->
+                <div class="grid grid-cols-2 gap-2 sm:gap-4 max-w-md mx-auto w-full">
+                    <button onclick="checkAnswer(2, true)" id="p2-btn-yes" class="btn-3d focus:outline-none">
+                        <img src="image4.png" alt="เป็น" class="w-40 h-25 sm:h-15 object-contain">
+                    </button>
+                    <button onclick="checkAnswer(2, false)" id="p2-btn-no" class="btn-3d focus:outline-none">
+                        <img src="image5.png" alt="ไม่เป็น" class="w-40 h-25 sm:h-15 object-contain">
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== VICTORY MODAL ==================== -->
+    <div id="win-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+        <div class="glass-card rounded-3xl p-6 sm:p-10 max-w-md w-full text-center text-white border-2 border-amber-300 shadow-2xl flex flex-col items-center">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-yellow-300 mb-2 drop-shadow-lg">🎉 สุดยอดเลยจ๋อ! 🎉</h2>
+            <p id="winner-title" class="text-2xl sm:text-3xl font-bold text-white mb-4">Player 1 ชนะแล้ว!</p>
+
+            <!-- Winner Monkey Display -->
+            <div class="relative w-40 h-40 mb-6">
+                <img id="winner-monkey-img" src="image7.png" alt="Winner Monkey" class="w-full h-full object-contain pop-anim float-anim">
+            </div>
+
+            <button onclick="restartGame()" class="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-extrabold text-2xl rounded-2xl shadow-xl btn-3d">
+                Play agian🔄
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== GAME LOGIC SCRIPT ==================== -->
+    <script>
+        // Game State Variables
+        let p1Level = 0;
+        let p2Level = 0;
+        let p1Num = 0;
+        let p2Num = 0;
+        let isGameActive = false;
+
+        // Heights corresponding to levels 0 through 5 (%)
+        const levelHeights = [-3, 5, 13, 21, 30, 47];
+
+        // Helper: Check Prime Number
+        function isPrime(n) {
+            if (n <= 1) return false;
+            if (n <= 3) return true;
+            if (n % 2 === 0 || n % 3 === 0) return false;
+            for (let i = 5; i * i <= n; i += 6) {
+                if (n % i === 0 || n % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        // Helper: Random Integer between min and max
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Toggle Rules Modal
+        function toggleModal(show) {
+            const modal = document.getElementById('rules-modal');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+
+        // Start Game
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            restartGame();
+        }
+
+        // Restart Game
+        function restartGame() {
+            p1Level = 0;
+            p2Level = 0;
+            isGameActive = true;
+
+            document.getElementById('win-modal').classList.add('hidden');
+            
+            updateMonkeyPosition(1);
+            updateMonkeyPosition(2);
+            
+            generateNewNumber(1);
+            generateNewNumber(2);
+        }
+
+        // Generate new random number for player
+        function generateNewNumber(player) {
+            const newNum = getRandomInt(1, 100);
+            if (player === 1) {
+                p1Num = newNum;
+                document.getElementById('p1-number').innerText = p1Num;
+            } else {
+                p2Num = newNum;
+                document.getElementById('p2-number').innerText = p2Num;
+            }
+        }
+
+        // Check Player's Answer
+        function checkAnswer(player, userSaysPrime) {
+            if (!isGameActive) return;
+
+            const currentNum = (player === 1) ? p1Num : p2Num;
+            const correctIsPrime = isPrime(currentNum);
+            const isCorrect = (userSaysPrime === correctIsPrime);
+
+            const container = document.getElementById(player === 1 ? 'p1-container' : 'p2-container');
+
+            if (isCorrect) {
+                // Correct Answer Logic
+                if (player === 1) {
+                    p1Level = Math.min(5, p1Level + 1);
+                    updateMonkeyPosition(1);
+                    triggerPopAnimation('p1-monkey');
+                    if (p1Level === 5) handleWin(1);
+                } else {
+                    p2Level = Math.min(5, p2Level + 1);
+                    updateMonkeyPosition(2);
+                    triggerPopAnimation('p2-monkey');
+                    if (p2Level === 5) handleWin(2);
+                }
+            } else {
+                // Incorrect Answer Logic
+                if (player === 1) {
+                    p1Level = Math.max(0, p1Level - 1);
+                    updateMonkeyPosition(1);
+                } else {
+                    p2Level = Math.max(0, p2Level - 1);
+                    updateMonkeyPosition(2);
+                }
+                triggerShakeAnimation(container);
+            }
+
+            if (isGameActive) {
+                generateNewNumber(player);
+            }
+        }
+
+        // Update Monkey Position visually
+        function updateMonkeyPosition(player) {
+            const level = (player === 1) ? p1Level : p2Level;
+            const monkeyEl = document.getElementById(player === 1 ? 'p1-monkey' : 'p2-monkey');
+            const badgeEl = document.getElementById(player === 1 ? 'p1-level-badge' : 'p2-level-badge');
+
+            monkeyEl.style.bottom = levelHeights[level] + '%';
+            badgeEl.innerText = `ระดับ ${level} / 5 🍌`;
+        }
+
+        // Animations
+        function triggerShakeAnimation(element) {
+            element.classList.remove('shake-anim');
+            void element.offsetWidth; // trigger reflow
+            element.classList.add('shake-anim');
+        }
+
+        function triggerPopAnimation(elementId) {
+            const el = document.getElementById(elementId);
+            el.classList.remove('pop-anim');
+            void el.offsetWidth; // trigger reflow
+            el.classList.add('pop-anim');
+        }
+
+        // Handle Victory
+        function handleWin(winner) {
+            isGameActive = false;
+            
+            // Trigger Confetti
+            confetti({
+                particleCount: 120,
+                spread: 80,
+                origin: { y: 0.6 }
+            });
+
+            const winnerText = document.getElementById('winner-title');
+            const winnerImg = document.getElementById('winner-monkey-img');
+
+            if (winner === 1) {
+                winnerText.innerText = "🔴 Player 1 ชนะแล้ว!";
+                winnerImg.src = "image7.png";
+            } else {
+                winnerText.innerText = "🔵 Player 2 ชนะแล้ว!";
+                winnerImg.src = "image8.png";
+            }
+
+            setTimeout(() => {
+                document.getElementById('win-modal').classList.remove('hidden');
+            }, 600);
+        }
+    </script>
+</body>
+</html>
